@@ -28,14 +28,22 @@ class SpectrumGeneratorWorker:
             wave_max_range: Optional[tuple[float, float]] = None,
             noise_range: Optional[tuple[float, float]] = None,
         ):
-        self.length_range: tuple[int, int] = \
-            _DEFAULT_RANGE_LENGTH if length_range is None else length_range
-        self.wave_min_range: tuple[float, float] = \
-            _DEFAULT_RANGE_WAVE_MIN if wave_min_range is None else wave_min_range
-        self.wave_max_range: tuple[float, float] = \
-            _DEFAULT_RANGE_WAVE_MAX if wave_max_range is None else wave_max_range
-        self.noise_range: tuple[float, float] = \
-            _DEFAULT_NOISE_RANGE if noise_range is None else noise_range
+        self.length_range: tuple[int, int] = (
+            _DEFAULT_RANGE_LENGTH if length_range is None
+            else length_range
+        )
+        self.wave_min_range: tuple[float, float] = (
+            _DEFAULT_RANGE_WAVE_MIN if wave_min_range is None
+            else wave_min_range
+        )
+        self.wave_max_range: tuple[float, float] = (
+            _DEFAULT_RANGE_WAVE_MAX if wave_max_range is None
+            else wave_max_range
+        )
+        self.noise_range: tuple[float, float] = (
+            _DEFAULT_NOISE_RANGE if noise_range is None
+            else noise_range
+        )
 
         self.wave_range: tuple[float, float] = \
             (self.wave_min_range[0], self.wave_max_range[-1])
@@ -53,8 +61,10 @@ class SpectrumGeneratorWorker:
         sample_spectrum[:, 0] = self.spec_wave
 
         sample_eigenvalues: np.ndarray = self.kde.sample()
-        sample_spectrum[:, 1] = \
-            (sample_eigenvalues @ self.eigenvectors) * self.spec_std + self.spec_mean
+        reconstructed = sample_eigenvalues @ self.eigenvectors
+        sample_spectrum[:, 1] = (
+            reconstructed * self.spec_std + self.spec_mean
+        )
 
         return sample_spectrum
 
@@ -73,10 +83,14 @@ class SpectrumGeneratorWorker:
 
     def _load_data(self):
         self.spec_wave = np.loadtxt(self.data_dir / 'wavelengths.dat')
-        optical_mask = (self.wave_min_range[0] <= self.spec_wave) & (self.spec_wave <= self.wave_max_range[-1])
+        optical_mask = (
+            (self.wave_min_range[0] <= self.spec_wave) &
+            (self.spec_wave <= self.wave_max_range[-1])
+        )
         self.spec_wave = self.spec_wave[optical_mask]
 
-        self.eigenvectors = np.loadtxt(self.data_dir / 'eigenvectors.dat')[:, optical_mask]
+        eigvec_path = self.data_dir / 'eigenvectors.dat'
+        self.eigenvectors = np.loadtxt(eigvec_path)[:, optical_mask]
         self.spec_mean = np.loadtxt(self.data_dir / 'mean.dat')[optical_mask]
         self.spec_std = np.loadtxt(self.data_dir / 'std.dat')[optical_mask]
 
@@ -101,8 +115,9 @@ class SpectrumGeneratorWorker:
         pipeline.fit(spectrum.wave.reshape(-1, 1), spectrum.flux)
 
         pred = pipeline.predict(wave_interp.reshape(-1, 1))
-        flux_interp: np.ndarray = \
+        flux_interp: np.ndarray = (
             pred if isinstance(pred, np.ndarray) else pred[0]
+        )
 
         return flux_interp
 
@@ -128,7 +143,9 @@ class SpectrumGeneratorWorker:
 
         # Renormalize after interp/noise
         norm_range = (5500., 6500.)
-        new_spectrum.normalize_flux(method='mean', wave_range=norm_range)
+        new_spectrum.normalize_flux(
+            method='mean', wave_range=norm_range
+        )
         new_spectrum.normalize_wave(wave_range=self.wave_range)
 
         return new_spectrum.data
@@ -140,7 +157,9 @@ class SpectrumGenerator:
         self.N_workers: int = N_workers
 
         if self.N_workers > 1:
-            self.parallel_pool = Parallel(n_jobs=N_workers, backend='loky')
+            self.parallel_pool = Parallel(
+                n_jobs=N_workers, backend='loky'
+            )
             self.workers: list[SpectrumGeneratorWorker] = [
                 SpectrumGeneratorWorker()
                 for _ in range(self.N_workers)
