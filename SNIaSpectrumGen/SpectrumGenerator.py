@@ -103,11 +103,16 @@ class SpectrumGeneratorWorker:
 
         kernel = Matern(
             length_scale=0.35,
-            length_scale_bounds=(0.01, 1.)
+            length_scale_bounds=(0.01, 1.),
         )
         pipeline: Pipeline = make_pipeline(
             StandardScaler(),
-            GaussianProcessRegressor(kernel=kernel, normalize_y=True)
+            GaussianProcessRegressor(
+                kernel=kernel,
+                normalize_y=True,
+                alpha=1e-5,
+                n_restarts_optimizer=1,
+            )
         )
 
         pipeline.fit(spectrum.wave.reshape(-1, 1), spectrum.flux)
