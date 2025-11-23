@@ -1,20 +1,7 @@
 import numpy as np
-import pytest
 
 from SNIaSpectrumGen.SpectrumGenerator import SpectrumGenerator
-
-
-def _validate_spectrum_array(arr: np.ndarray) -> None:
-    assert isinstance(arr, np.ndarray), \
-        "Batch item must be a numpy array"
-    assert arr.ndim == 2 and arr.shape[1] == 2, \
-        "Spectrum array must be (N, 2)"
-    assert arr.shape[0] > 10, \
-        "Spectrum should have >10 wavelength samples"
-    assert np.all(np.diff(arr[:, 0]) >= 0), \
-        "Wavelength grid must be sorted ascending"
-    assert np.isfinite(arr[:, 1]).all(), \
-        "Flux values must be finite"
+from helpers import validate_spectrum_array
 
 
 def test_generate_batch_serial():
@@ -22,7 +9,7 @@ def test_generate_batch_serial():
     batch = gen.generate_batch(batch_size=3)
     assert len(batch) == 3, "Batch size mismatch"
     for arr in batch:
-        _validate_spectrum_array(arr)
+        validate_spectrum_array(arr)
 
 
 def test_generate_batch_parallel():
@@ -30,7 +17,7 @@ def test_generate_batch_parallel():
     batch = gen.generate_batch(batch_size=4)
     assert len(batch) == 4, "Batch size mismatch (parallel)"
     for arr in batch:
-        _validate_spectrum_array(arr)
+        validate_spectrum_array(arr)
 
 
 def test_generate_single_equivalence():

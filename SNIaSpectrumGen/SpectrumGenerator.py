@@ -101,15 +101,13 @@ class SpectrumGeneratorWorker:
         ) -> np.ndarray:
         spectrum.downsample(2.)
 
+        kernel = Matern(
+            length_scale=0.35,
+            length_scale_bounds=(0.01, 1.)
+        )
         pipeline: Pipeline = make_pipeline(
             StandardScaler(),
-            GaussianProcessRegressor(
-                kernel=Matern(
-                    length_scale=0.35,
-                    length_scale_bounds=(0.01, 1.)
-                ),
-                normalize_y=True,
-            )
+            GaussianProcessRegressor(kernel=kernel, normalize_y=True)
         )
 
         pipeline.fit(spectrum.wave.reshape(-1, 1), spectrum.flux)
@@ -156,23 +154,32 @@ class SpectrumGenerator:
     def __init__(self, N_workers: int = 1):
         self.N_workers: int = N_workers
 
+        self.worker: SpectrumGeneratorWorker | None = None
+        self.parallel_pool: Parallel | None = None
+
         if self.N_workers > 1:
             self.parallel_pool = Parallel(
-                n_jobs=N_workers, backend='loky'
+                n_jobs=N_workers,
+                backend='loky',
             )
             self.workers: list[SpectrumGeneratorWorker] = [
                 SpectrumGeneratorWorker()
                 for _ in range(self.N_workers)
             ]
         else:
-            self.worker: SpectrumGeneratorWorker = SpectrumGeneratorWorker()
+            self.worker = SpectrumGeneratorWorker()
 
     def generate(self) -> np.ndarray:
+        if self.worker is None:
+            raise RuntimeError("Worker not initialized.")
         return self.worker()
 
     def generate_batch(self, batch_size: int = 8) -> list[np.ndarray]:
         if self.N_workers <= 1:
             return [self.generate() for _ in range(batch_size)]
+
+        if self.parallel_pool is None:
+            raise RuntimeError("Parallel pool not initialized.")
 
         results = self.parallel_pool(
             delayed(self.workers[i % self.N_workers])()
