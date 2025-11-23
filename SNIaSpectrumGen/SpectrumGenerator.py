@@ -156,6 +156,7 @@ class SpectrumGenerator:
             return [self.generate() for _ in range(batch_size)]
 
         results = self.parallel_pool(
-            delayed(lambda: SpectrumGeneratorWorker()())() for _ in range(batch_size)
+            delayed(self.workers[i % self.N_workers])()
+            for i in range(batch_size)
         )
-        return list(results)
+        return list(results)  # type: ignore[return-value]

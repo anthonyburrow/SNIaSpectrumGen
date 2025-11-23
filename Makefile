@@ -4,6 +4,7 @@ PYTHON := python
 VENV_DIR := .venv
 VENV_PYTHON := $(VENV_DIR)/bin/python
 VENV_PIP := $(VENV_DIR)/bin/pip
+PYTEST_FLAGS := -sv
 
 IN_VENV := $(shell python -c 'import sys; print(int(sys.prefix != sys.base_prefix))')
 
@@ -45,13 +46,13 @@ install:
 test:
 	@if [ -d "$(VENV_DIR)" ] && [ "$(IN_VENV)" = "0" ]; then \
 		echo "Running tests in venv..."; \
-		$(VENV_PYTHON) -m pytest; \
+		$(VENV_PYTHON) -m pytest $(PYTEST_FLAGS); \
 	elif [ "$(IN_VENV)" = "1" ]; then \
 		echo "Running tests in active virtual environment..."; \
-		pytest; \
+		pytest $(PYTEST_FLAGS); \
 	else \
 		echo "Running tests..."; \
-		pytest; \
+		pytest $(PYTEST_FLAGS); \
 	fi
 
 clean:
