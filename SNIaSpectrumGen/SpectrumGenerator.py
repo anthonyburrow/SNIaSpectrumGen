@@ -156,17 +156,13 @@ class SpectrumGenerator:
 
         self.worker: SpectrumGeneratorWorker | None = None
         self.parallel_pool: Parallel | None = None
-
         if self.N_workers > 1:
             self.parallel_pool = Parallel(
                 n_jobs=N_workers,
                 backend='loky',
             )
-            self.workers: list[SpectrumGeneratorWorker] = [
-                SpectrumGeneratorWorker()
-                for _ in range(self.N_workers)
-            ]
         else:
+            # Reuse a single worker for serial generation
             self.worker = SpectrumGeneratorWorker()
 
     def generate(self) -> np.ndarray:
@@ -181,8 +177,21 @@ class SpectrumGenerator:
         if self.parallel_pool is None:
             raise RuntimeError("Parallel pool not initialized.")
 
-        results = self.parallel_pool(
-            delayed(self.workers[i % self.N_workers])()
-            for i in range(batch_size)
+        base = batch_size // self.N_workers
+        remainder = batch_size % self.N_workers
+        counts = [base + (1 if i < remainder else 0) for i in range(self.N_workers)]
+
+        list_of_lists = self.parallel_pool(
+            delayed(SpectrumGenerator._generate_many)(c) for c in counts if c > 0
         )
-        return list(results)  # type: ignore[return-value]
+
+        spectra: list[np.ndarray] = []
+        for lst in list_of_lists:
+            spectra.extend(lst)     # type: ignore[arg-type]
+
+        return spectra
+
+    @staticmethod
+    def _generate_many(count: int) -> list[np.ndarray]:
+        worker = SpectrumGeneratorWorker()
+        return [worker() for _ in range(count)]
