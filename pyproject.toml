@@ -26,6 +26,7 @@ classifiers=[
 ]
 dependencies = [
     "numpy",
+    "scipy",
     "scikit-learn",
     "SpectrumCore @ git+https://github.com/anthonyburrow/SpectrumCore.git"
 ]

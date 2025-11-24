@@ -2,11 +2,8 @@ import numpy as np
 from pathlib import Path
 from typing import Optional
 from joblib import Parallel, delayed
-
-from sklearn.pipeline import Pipeline, make_pipeline
+from scipy.interpolate import UnivariateSpline
 from sklearn.preprocessing import StandardScaler
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import Matern
 
 from SpectrumCore import Spectrum
 
@@ -99,30 +96,23 @@ class SpectrumGeneratorWorker:
             spectrum: Spectrum,
             wave_interp: np.ndarray,
         ) -> np.ndarray:
-        spectrum.downsample(2.)
+        scaler_x = StandardScaler()
+        scaler_y = StandardScaler()
 
-        kernel = Matern(
-            length_scale=0.35,
-            length_scale_bounds=(0.01, 1.),
-        )
-        pipeline: Pipeline = make_pipeline(
-            StandardScaler(),
-            GaussianProcessRegressor(
-                kernel=kernel,
-                normalize_y=True,
-                alpha=1e-5,
-                n_restarts_optimizer=1,
-            )
-        )
+        wave_scaled = scaler_x.fit_transform(spectrum.wave.reshape(-1, 1)).ravel()
+        flux_scaled = scaler_y.fit_transform(spectrum.flux.reshape(-1, 1)).ravel()
 
-        pipeline.fit(spectrum.wave.reshape(-1, 1), spectrum.flux)
+        s = len(wave_scaled) * self.noise_range[1]**2
+        spline = UnivariateSpline(wave_scaled, flux_scaled, s=s, k=3)
 
-        pred = pipeline.predict(wave_interp.reshape(-1, 1))
-        flux_interp: np.ndarray = (
-            pred if isinstance(pred, np.ndarray) else pred[0]
-        )
+        wave_interp_scaled = scaler_x.transform(wave_interp.reshape(-1, 1)).ravel()
+        flux_interp_scaled = spline(wave_interp_scaled)
 
-        return flux_interp
+        flux_interp = scaler_y.inverse_transform(
+            np.asarray(flux_interp_scaled).reshape(-1, 1)
+        ).ravel()
+
+        return flux_interp  # type: ignore[return-value]
 
     def __call__(self, _=None) -> np.ndarray:
         sample_spectrum: Spectrum = Spectrum(self._sample_from_KDE())
@@ -156,47 +146,12 @@ class SpectrumGeneratorWorker:
 
 class SpectrumGenerator:
 
-    def __init__(self, N_workers: int = 1):
-        self.N_workers: int = N_workers
-
-        self.worker: SpectrumGeneratorWorker | None = None
-        self.parallel_pool: Parallel | None = None
-        if self.N_workers > 1:
-            self.parallel_pool = Parallel(
-                n_jobs=N_workers,
-                backend='loky',
-            )
-        else:
-            # Reuse a single worker for serial generation
-            self.worker = SpectrumGeneratorWorker()
+    def __init__(self):
+        self.worker: SpectrumGeneratorWorker = SpectrumGeneratorWorker()
 
     def generate(self) -> np.ndarray:
-        if self.worker is None:
-            raise RuntimeError("Worker not initialized.")
         return self.worker()
 
     def generate_batch(self, batch_size: int = 8) -> list[np.ndarray]:
-        if self.N_workers <= 1:
-            return [self.generate() for _ in range(batch_size)]
+        return [self.generate() for _ in range(batch_size)]
 
-        if self.parallel_pool is None:
-            raise RuntimeError("Parallel pool not initialized.")
-
-        base = batch_size // self.N_workers
-        remainder = batch_size % self.N_workers
-        counts = [base + (1 if i < remainder else 0) for i in range(self.N_workers)]
-
-        list_of_lists = self.parallel_pool(
-            delayed(SpectrumGenerator._generate_many)(c) for c in counts if c > 0
-        )
-
-        spectra: list[np.ndarray] = []
-        for lst in list_of_lists:
-            spectra.extend(lst)     # type: ignore[arg-type]
-
-        return spectra
-
-    @staticmethod
-    def _generate_many(count: int) -> list[np.ndarray]:
-        worker = SpectrumGeneratorWorker()
-        return [worker() for _ in range(count)]
