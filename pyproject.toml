@@ -37,7 +37,7 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/anthonyburrow/spextractor.git"
+Repository = "https://github.com/anthonyburrow/SNIaSpectrumGen.git"
 
 [tool.setuptools.packages.find]
 where = ["."]
