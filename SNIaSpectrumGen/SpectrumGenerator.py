@@ -1,7 +1,6 @@
 import numpy as np
 from pathlib import Path
 from typing import Optional
-from joblib import Parallel, delayed
 from scipy.interpolate import UnivariateSpline
 from sklearn.preprocessing import StandardScaler
 
@@ -14,6 +13,12 @@ _DEFAULT_RANGE_LENGTH: tuple[int, int] = (800, 2000)
 _DEFAULT_RANGE_WAVE_MIN: tuple[float, float] = (5000., 5500.)
 _DEFAULT_RANGE_WAVE_MAX: tuple[float, float] = (8750., 10000.)
 _DEFAULT_NOISE_RANGE: tuple[float, float] = (0.01, 0.05)
+
+_DATA_DIR: Path = Path(__file__).resolve().parent.parent / 'data'
+_FILENAME_EIGENVECTORS: Path = _DATA_DIR / 'eigenvectors.dat'
+_FILENAME_MEAN: Path = _DATA_DIR / 'mean.dat'
+_FILENAME_STD: Path = _DATA_DIR / 'std.dat'
+_FILENAME_WAVELENGTHS: Path = _DATA_DIR / 'wavelengths.dat'
 
 
 class SpectrumGeneratorWorker:
@@ -44,9 +49,6 @@ class SpectrumGeneratorWorker:
 
         self.wave_range: tuple[float, float] = \
             (self.wave_min_range[0], self.wave_max_range[-1])
-
-        root_dir = Path(__file__).resolve().parent
-        self.data_dir: Path = root_dir.parent / 'data'
 
         self.kde: KDEPipeline = KDEPipeline()
         self._load_data()
@@ -79,17 +81,16 @@ class SpectrumGeneratorWorker:
         return np.linspace(wave_min, wave_max, N_wave)
 
     def _load_data(self):
-        self.spec_wave = np.loadtxt(self.data_dir / 'wavelengths.dat')
+        self.spec_wave = np.loadtxt(_FILENAME_WAVELENGTHS)
         optical_mask = (
             (self.wave_min_range[0] <= self.spec_wave) &
             (self.spec_wave <= self.wave_max_range[-1])
         )
         self.spec_wave = self.spec_wave[optical_mask]
 
-        eigvec_path = self.data_dir / 'eigenvectors.dat'
-        self.eigenvectors = np.loadtxt(eigvec_path)[:, optical_mask]
-        self.spec_mean = np.loadtxt(self.data_dir / 'mean.dat')[optical_mask]
-        self.spec_std = np.loadtxt(self.data_dir / 'std.dat')[optical_mask]
+        self.eigenvectors = np.loadtxt(_FILENAME_EIGENVECTORS)[:, optical_mask]
+        self.spec_mean = np.loadtxt(_FILENAME_MEAN)[optical_mask]
+        self.spec_std = np.loadtxt(_FILENAME_STD)[optical_mask]
 
     def _interpolate_spectrum(
             self,
