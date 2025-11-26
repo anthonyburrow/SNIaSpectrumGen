@@ -147,8 +147,13 @@ class SpectrumGeneratorWorker:
 
 class SpectrumGenerator:
 
-    def __init__(self):
-        self.worker: SpectrumGeneratorWorker = SpectrumGeneratorWorker()
+    def __init__(self, steps: int, **kwargs):
+        self.steps = steps
+        self.worker: SpectrumGeneratorWorker = \
+            SpectrumGeneratorWorker(**kwargs)
+
+    def __len__(self):
+        return self.steps
 
     def generate(self) -> np.ndarray:
         return self.worker()

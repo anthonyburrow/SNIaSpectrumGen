@@ -15,7 +15,7 @@ maintainers = [
     {name = "Anthony Burrow", email = "anthony.r.burrow@gmail.com"}
 ]
 description = "A SN Ia spectrum generator using empirical models."
-license = "MIT"
+license = { file = "LICENSE" }
 readme = "README.md"
 classifiers=[
     "Programming Language :: Python",
