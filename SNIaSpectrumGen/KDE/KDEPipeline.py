@@ -16,7 +16,7 @@ class KDEPipeline:
     def __init__(self) -> None:
         root_dir = Path(__file__).resolve().parent.parent
 
-        self.data_dir: Path = root_dir.parent / 'data'
+        self.data_dir: Path = root_dir / 'data'
         self.model_dir: Path = root_dir.parent / 'models'
         self.plot_dir: Path = root_dir.parent / 'plots'
 

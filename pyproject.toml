@@ -45,3 +45,6 @@ include-package-data = true
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["SNIaSpectrumGen*"]
+
+[tool.setuptools.package-data]
+SNIaSpectrumGen = ["data/*.dat"]
