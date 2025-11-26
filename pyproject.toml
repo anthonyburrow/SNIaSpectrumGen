@@ -45,14 +45,3 @@ include-package-data = true
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["SNIaSpectrumGen*"]
-
-# Install top-level data files into site-packages/data so
-# code that looks for `<site-packages>/data/*.dat` can find them
-[tool.setuptools.data-files]
-"data" = [
-    "data/all_params.dat",
-    "data/eigenvectors.dat",
-    "data/mean.dat",
-    "data/std.dat",
-    "data/wavelengths.dat",
-]
