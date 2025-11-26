@@ -30,15 +30,18 @@ install:
 		echo "Virtual environment detected but not activated."; \
 		echo "Installing in venv..."; \
 		$(VENV_PIP) install --upgrade pip; \
+		$(VENV_PIP) install -e .[dev] --force-reinstall --no-deps; \
 		$(VENV_PIP) install -e .[dev]; \
 	elif [ "$(IN_VENV)" = "1" ]; then \
 		echo "Installing in active virtual environment..."; \
 		pip install --upgrade pip; \
+		pip install -e .[dev] --force-reinstall --no-deps; \
 		pip install -e .[dev]; \
 	else \
 		echo "No virtual environment detected."; \
 		echo "Installing in system/user Python..."; \
 		pip install --upgrade pip; \
+		pip install -e .[dev] --force-reinstall --no-deps; \
 		pip install -e .[dev]; \
 	fi
 	@echo "Installation complete!"
