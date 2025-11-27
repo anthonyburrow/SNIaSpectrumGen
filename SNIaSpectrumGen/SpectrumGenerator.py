@@ -14,7 +14,7 @@ _DEFAULT_RANGE_WAVE_MIN: tuple[float, float] = (5000., 5500.)
 _DEFAULT_RANGE_WAVE_MAX: tuple[float, float] = (8750., 10000.)
 _DEFAULT_NOISE_RANGE: tuple[float, float] = (0.01, 0.05)
 
-_DATA_DIR: Path = Path(__file__).resolve().parent.parent / 'data'
+_DATA_DIR: Path = Path(__file__).resolve().parent / 'data'
 _FILENAME_EIGENVECTORS: Path = _DATA_DIR / 'eigenvectors.dat'
 _FILENAME_MEAN: Path = _DATA_DIR / 'mean.dat'
 _FILENAME_STD: Path = _DATA_DIR / 'std.dat'
